@@ -33,13 +33,7 @@ def compute_pose_statistics(csv_path, pose_columns=['x', 'y', 'z']):
         'std': std,
         'min': min_vals,
         'max': max_vals
-    }
-    
-    print("\n📊 Pose Statistics:")
-    for dim, name in enumerate(pose_columns):
-        print(f"  {name}: mean={mean[dim]:.4f}, std={std[dim]:.4f}, "
-              f"min={min_vals[dim]:.4f}, max={max_vals[dim]:.4f}")
-    
+    }    
     return stats
 
 
@@ -49,26 +43,15 @@ def train_epoch(model, dataloader, criterion, optimizer, device, epoch_num):
     running_loss = 0.0
     
     for batch_idx, (images, targets) in enumerate(dataloader):
-        # ✅ images shape: [batch, 3_cameras, channels, height, width]
-        # ✅ targets shape: [batch, 3] (x, y, z)
         
         images = images.to(device)
         targets = targets.to(device)
-        
-        # Debug: Print shapes on first batch
-        if batch_idx == 0 and epoch_num == 1:
-            print(f"\n🔍 Debug - First batch shapes:")
-            print(f"  Input images: {images.shape}")  # [batch, 3, C, H, W]
-            print(f"  Target poses: {targets.shape}")  # [batch, 3]
         
         # Zero gradients
         optimizer.zero_grad()
         
         # Forward pass - model handles splitting internally
         outputs = model(images)
-        
-        if batch_idx == 0 and epoch_num == 1:
-            print(f"  Output poses: {outputs.shape}")  # [batch, 3]
         
         # Calculate loss
         loss = criterion(outputs, targets)
@@ -232,10 +215,10 @@ def main():
     IMAGE_CHANNELS = 3
     POSE_CHANNELS = 3  # x, y, z
     EMBED_DIM = 64
-    
+    DROPOUt = 0.2
     # Training hyperparameters
     BATCH_SIZE = 32
-    NUM_EPOCHS = 20
+    NUM_EPOCHS = 15
     LEARNING_RATE = 0.001
     
     # Other settings
@@ -324,6 +307,7 @@ def main():
         image_width=IMAGE_WIDTH,
         pose_channels=POSE_CHANNELS,
         embed_dim=EMBED_DIM,
+        dropout=DROPOUt
     )
     model = model.to(DEVICE)
     

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 class SingleImageCNN(nn.Module):
     """This CNN extracts features from a single image"""
     
-    def __init__(self, image_channels, image_height, image_width, output_dim, dropout=0.2):
+    def __init__(self, image_channels, image_height, image_width, output_dim, dropout):
         super(SingleImageCNN, self).__init__()
         
         # Convolutional layers: Shape is [b,c,h,w]
@@ -40,15 +40,15 @@ class SingleImageCNN(nn.Module):
 class FeatureDecoder(nn.Module):
     """This MLP extracts decodes features into pose estimates"""
 
-    def __init__(self, input_channels, output_dim, dropout=0.1):
+    def __init__(self, input_channels, output_dim, dropout):
         super(FeatureDecoder, self).__init__()
         
         # Dropout for regularization
         self.dropout = nn.Dropout(dropout)
 
-        self.fc1 = nn.Linear(input_channels, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, output_dim)
+        self.fc1 = nn.Linear(input_channels, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, output_dim)
 
     def forward(self, x):
         
@@ -66,12 +66,12 @@ class FeatureDecoder(nn.Module):
 class SingleCameraPosePredictor(nn.Module):
     """This model predicts pose using a single camera angle"""
     
-    def __init__(self, image_channels, image_height, image_width, pose_channels, embed_dim):
+    def __init__(self, image_channels, image_height, image_width, pose_channels, embed_dim , dropout):
         super(SingleCameraPosePredictor, self).__init__()
         
-        self.image_encoder1 = SingleImageCNN(image_channels, image_height, image_width, output_dim=embed_dim)
+        self.image_encoder1 = SingleImageCNN(image_channels, image_height, image_width, output_dim=embed_dim, dropout=dropout)
 
-        self.pose_decoder = FeatureDecoder(input_channels=embed_dim, output_dim=pose_channels)
+        self.pose_decoder = FeatureDecoder(input_channels=embed_dim, output_dim=pose_channels, dropout=dropout)
         
     def forward(self,x):
         x = self.image_encoder1(x)
@@ -81,14 +81,14 @@ class SingleCameraPosePredictor(nn.Module):
 class MultiCameraPosePredictor(nn.Module):
     """This model predicts pose using three different camera angles"""
 
-    def __init__(self, image_channels, image_height, image_width, pose_channels, embed_dim):
+    def __init__(self, image_channels, image_height, image_width, pose_channels, embed_dim, dropout):
         super(MultiCameraPosePredictor, self).__init__()
         
-        self.image_encoder1 = SingleImageCNN(image_channels, image_height, image_width, output_dim=embed_dim)
-        self.image_encoder2 = SingleImageCNN(image_channels, image_height, image_width, output_dim=embed_dim)
-        self.image_encoder3 = SingleImageCNN(image_channels, image_height, image_width, output_dim=embed_dim)
+        self.image_encoder1 = SingleImageCNN(image_channels, image_height, image_width, embed_dim, dropout)
+        self.image_encoder2 = SingleImageCNN(image_channels, image_height, image_width, embed_dim, dropout)
+        self.image_encoder3 = SingleImageCNN(image_channels, image_height, image_width, embed_dim, dropout)
 
-        self.pose_decoder = FeatureDecoder(input_channels=3*embed_dim, output_dim=pose_channels)
+        self.pose_decoder = FeatureDecoder(input_channels=3*embed_dim, output_dim=pose_channels, dropout=dropout)
         
     def forward(self, x):
         """
