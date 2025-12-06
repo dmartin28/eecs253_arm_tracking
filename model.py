@@ -116,3 +116,37 @@ class MultiCameraPosePredictor(nn.Module):
         y = self.pose_decoder(combined_features)
         
         return y
+
+class PoseLSTM(nn.Module):
+    def __init__(self, pose_dim, predict_len, hidden_size, dropout = 0.1):
+        super(PoseLSTM, self).__init__()
+        
+        self.pose = pose_dim
+        self.hidden_size = hidden_size
+        self.predict_len = predict_len
+        self.dropout = nn.Dropout(dropout)
+        
+        self.lstm = nn.LSTM(
+            input_size=pose_dim,
+            hidden_size=hidden_size,
+            num_layers=1,
+            batch_first=True,  # Input shape: (batch, seq_len, features)
+            dropout=0  # Dropout only works with >1 layers
+        )
+        
+        # Fully connected layer to map LSTM output to pose predictions
+        self.fc = nn.Linear(hidden_size, pose_dim)
+        
+    def forward(self, x):
+        # Note: x is a tensor of shape [batch, predict_len, pose_channels] where each column corresponds to x,y,z pose
+        
+        # Pass through LSTM
+        lstm_out, (h_n, c_n) = self.lstm(x)
+        
+        # Use only the last timestep output for prediction
+        last_output = lstm_out[:, -1, :]  # Shape: (batch, hidden_size)
+        
+        # Apply dropout
+        last_output = self.dropout(last_output)
+        prediction = self.fc(last_output)
+        return prediction
