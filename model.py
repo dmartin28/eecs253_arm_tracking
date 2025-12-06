@@ -17,7 +17,7 @@ class SingleImageCNN(nn.Module):
         self.conv3 = nn.Conv2d(8, 16, kernel_size=3, padding=1)
         
         # Pooling layer
-        self.pool = nn.MaxPool2d(2, 2)
+        self.pool = nn.AvgPool2d(2, 2)
         
         # Dropout for regularization
         self.dropout = nn.Dropout(dropout)

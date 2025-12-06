@@ -62,9 +62,9 @@ def train_epoch(model, dataloader, criterion, optimizer, device, epoch_num):
         
         running_loss += loss.item()
         
-        # Print progress
-        if (batch_idx + 1) % 10 == 0:
-            print(f"  Batch [{batch_idx + 1}/{len(dataloader)}], Loss: {loss.item():.6f}")
+        # # Print progress
+        # if (batch_idx + 1) % 10 == 0:
+        #     print(f"  Batch [{batch_idx + 1}/{len(dataloader)}], Loss: {loss.item():.6f}")
     
     epoch_loss = running_loss / len(dataloader)
     return epoch_loss
@@ -79,7 +79,7 @@ def validate(model, dataloader, criterion, device):
     
     with torch.no_grad():
         for images, targets in dataloader:
-            # ✅ images shape: [batch, 3_cameras, channels, height, width]
+            # images shape: [batch, 3_cameras, channels, height, width]
             images = images.to(device)
             targets = targets.to(device)
             
@@ -157,56 +157,18 @@ def plot_predictions(predictions, targets, pose_stats, save_path='predictions.pn
     plt.close()
     print(f"✅ Prediction plots saved to {save_path}")
 
-
-def test_dataset_and_model(train_dataset, model, device):
-    """Test that dataset and model work together"""
-    print("\n" + "="*70)
-    print("🧪 Testing Dataset and Model Integration")
-    print("="*70)
-    
-    # Get one sample
-    images, pose = train_dataset[0]
-    print(f"\n📦 Single sample:")
-    print(f"  Images shape: {images.shape}")  # Should be [3, C, H, W]
-    print(f"  Pose shape: {pose.shape}")      # Should be [3]
-    print(f"  Pose values: {pose}")
-    
-    # Test with batch
-    test_loader = DataLoader(train_dataset, batch_size=4, shuffle=False)
-    images_batch, poses_batch = next(iter(test_loader))
-    
-    print(f"\n📦 Batch test:")
-    print(f"  Images batch shape: {images_batch.shape}")  # Should be [4, 3, C, H, W]
-    print(f"  Poses batch shape: {poses_batch.shape}")    # Should be [4, 3]
-    
-    # Test model forward pass
-    model.eval()
-    with torch.no_grad():
-        images_batch = images_batch.to(device)
-        output = model(images_batch)
-        print(f"\n🤖 Model output:")
-        print(f"  Output shape: {output.shape}")  # Should be [4, 3]
-        print(f"  Sample output: {output[0]}")
-    
-    print("\n✅ Dataset and model are compatible!")
-    print("="*70 + "\n")
-
-
 def main():
-    # ========================================================================
-    # CONFIGURATION - MODIFY THESE PATHS
-    # ========================================================================
-    
+
     # Dataset paths
     TRAIN_CSV = "C:/Users/david/Projects/eecs253_arm_tracking/episode_84/train_data.csv"
     VAL_CSV = "C:/Users/david/Projects/eecs253_arm_tracking/episode_84/test_data.csv"
     
-    # ✅ THREE DIFFERENT IMAGE DIRECTORIES (one for each camera)
+    # THREE DIFFERENT IMAGE DIRECTORIES (one for each camera)
     EXTERNAL1_DIR = "C:/Users/david/Projects/eecs253_arm_tracking/episode_84/exterior_image_1_left"
     EXTERNAL2_DIR = "C:/Users/david/Projects/eecs253_arm_tracking/episode_84/exterior_image_2_left"
     WRIST_DIR = "C:/Users/david/Projects/eecs253_arm_tracking/episode_84/wrist_image_left"
     
-    # ✅ Pass as list of 3 directories
+    # Pass as list of 3 directories
     IMAGE_DIRS = [EXTERNAL1_DIR, EXTERNAL2_DIR, WRIST_DIR]
     
     # Model configuration
@@ -215,10 +177,10 @@ def main():
     IMAGE_CHANNELS = 3
     POSE_CHANNELS = 3  # x, y, z
     EMBED_DIM = 64
-    DROPOUt = 0.2
+    DROPOUt = 0.1
     # Training hyperparameters
     BATCH_SIZE = 32
-    NUM_EPOCHS = 15
+    NUM_EPOCHS = 10
     LEARNING_RATE = 0.001
     
     # Other settings
@@ -233,49 +195,27 @@ def main():
     # Create save directory
     os.makedirs(SAVE_DIR, exist_ok=True)
     
-    print("\n" + "="*70)
-    print("🚀 Multi-Camera Pose Prediction Training")
-    print("="*70)
-    print(f"\n⚙️  Configuration:")
-    print(f"  Device: {DEVICE}")
-    print(f"  Epochs: {NUM_EPOCHS}")
-    print(f"  Batch size: {BATCH_SIZE}")
-    print(f"  Learning rate: {LEARNING_RATE}")
-    print(f"  Embed dim: {EMBED_DIM}")
-    print(f"\n📁 Data paths:")
-    print(f"  Train CSV: {TRAIN_CSV}")
-    print(f"  Val CSV: {VAL_CSV}")
-    print(f"  Camera 1 (External 1): {EXTERNAL1_DIR}")
-    print(f"  Camera 2 (External 2): {EXTERNAL2_DIR}")
-    print(f"  Camera 3 (Wrist): {WRIST_DIR}")
-    
-    # ✅ Compute pose statistics from TRAINING data only
-    print("\n" + "="*70)
-    print("📊 Computing Training Pose Statistics")
-    print("="*70)
+    # Compute pose statistics from TRAINING data only
     train_stats = compute_pose_statistics(TRAIN_CSV)
     
-    # ✅ Create datasets - validation uses SAME stats as training
-    print("\n" + "="*70)
-    print("📦 Creating Datasets")
-    print("="*70)
-    
+    # Create datasets - validation uses SAME stats as training
     train_dataset = MultiCamPoseDataset(
         csv_path=TRAIN_CSV,
-        image_dirs=IMAGE_DIRS,  # ✅ List of 3 directories
+        image_dirs=IMAGE_DIRS,  #List of 3 directories
         pose_stats=train_stats,
         normalization='standardize'
     )
+    print(f"Train dataset created: {len(train_dataset)} samples")
     
     val_dataset = None
     if os.path.exists(VAL_CSV):
         val_dataset = MultiCamPoseDataset(
             csv_path=VAL_CSV,
-            image_dirs=IMAGE_DIRS,  # ✅ Same directories
-            pose_stats=train_stats,  # ✅ Use TRAINING stats for validation too!
+            image_dirs=IMAGE_DIRS,  # Same directories
+            pose_stats=train_stats,  # Use TRAINING stats for validation too!
             normalization='standardize'
         )
-        print(f"✅ Validation dataset created: {len(val_dataset)} samples")
+        print(f"Validation dataset created: {len(val_dataset)} samples")
     
     # Create dataloaders
     train_loader = DataLoader(
@@ -296,11 +236,7 @@ def main():
             pin_memory=True if torch.cuda.is_available() else False
         )
     
-    # ✅ Initialize model
-    print("\n" + "="*70)
-    print("🤖 Initializing Model")
-    print("="*70)
-    
+    # Initialize model 
     model = MultiCameraPosePredictor(
         image_channels=IMAGE_CHANNELS,
         image_height=IMAGE_HEIGHT,
@@ -314,12 +250,9 @@ def main():
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"✅ Model created:")
+    print(f"Model created:")
     print(f"  Total parameters: {total_params:,}")
     print(f"  Trainable parameters: {trainable_params:,}")
-    
-    # ✅ Test dataset and model compatibility
-    test_dataset_and_model(train_dataset, model, DEVICE)
     
     # Loss function and optimizer
     criterion = nn.MSELoss()
@@ -336,10 +269,6 @@ def main():
     val_losses = []
     best_val_loss = float('inf')
     
-    print("\n" + "="*70)
-    print("🏋️  Starting Training")
-    print("="*70)
-    
     for epoch in range(NUM_EPOCHS):
         print(f"\n{'='*70}")
         print(f"Epoch [{epoch + 1}/{NUM_EPOCHS}]")
@@ -348,96 +277,65 @@ def main():
         # Train
         train_loss = train_epoch(model, train_loader, criterion, optimizer, DEVICE, epoch + 1)
         train_losses.append(train_loss)
-        print(f"\n📈 Train Loss: {train_loss:.6f}")
+        print(f"Train Loss: {train_loss:.6f}")
         
         # Validate
-        if val_loader:
-            val_loss, mean_errors, max_errors, predictions, targets = validate(
+        val_loss, mean_errors, max_errors, predictions, targets = validate(
                 model, val_loader, criterion, DEVICE
-            )
-            val_losses.append(val_loss)
-            print(f"📉 Val Loss: {val_loss:.6f}")
-            print(f"📊 Mean Absolute Errors (normalized):")
-            print(f"   X: {mean_errors[0]:.6f}, Y: {mean_errors[1]:.6f}, Z: {mean_errors[2]:.6f}")
-            print(f"📊 Max Absolute Errors (normalized):")
-            print(f"   X: {max_errors[0]:.6f}, Y: {max_errors[1]:.6f}, Z: {max_errors[2]:.6f}")
+        )
+        val_losses.append(val_loss)
+        print(f"Val Loss: {val_loss:.6f}")
+        print(f"Mean Absolute Errors (normalized):")
+        print(f"   X: {mean_errors[0]:.6f}, Y: {mean_errors[1]:.6f}, Z: {mean_errors[2]:.6f}")
+        print(f"Max Absolute Errors (normalized):")
+        print(f"   X: {max_errors[0]:.6f}, Y: {max_errors[1]:.6f}, Z: {max_errors[2]:.6f}")
             
-            # Save best model
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                torch.save({
-                    'epoch': epoch + 1,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'train_loss': train_loss,
-                    'val_loss': val_loss,
-                    'pose_stats': train_stats,  # ✅ Save stats for inference
-                }, os.path.join(SAVE_DIR, 'best_model.pth'))
-                print(f"✅ Saved best model (val_loss: {val_loss:.6f})")
-        
-        # Save checkpoint every 5 epochs
-        if (epoch + 1) % 5 == 0:
-            checkpoint_path = os.path.join(SAVE_DIR, f'checkpoint_epoch_{epoch + 1}.pth')
+        # Save best model
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
             torch.save({
                 'epoch': epoch + 1,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'train_loss': train_loss,
-                'val_loss': val_loss if val_loader else None,
-                'pose_stats': train_stats,
-            }, checkpoint_path)
-            print(f"💾 Saved checkpoint: {checkpoint_path}")
+                'val_loss': val_loss,
+                'pose_stats': train_stats,  # Save stats for inference
+            }, os.path.join(SAVE_DIR, 'best_model.pth'))
+            print(f"Saved best model (val_loss: {val_loss:.6f})")
     
     # ========================================================================
-    # SAVE FINAL MODEL AND PLOTS
+    # SAVE PLOTS
     # ========================================================================
-    
-    print("\n" + "="*70)
-    print("💾 Saving Final Results")
-    print("="*70)
-    
-    # Save final model
-    final_model_path = os.path.join(SAVE_DIR, 'final_model.pth')
-    torch.save({
-        'epoch': NUM_EPOCHS,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'train_losses': train_losses,
-        'val_losses': val_losses,
-        'pose_stats': train_stats,
-    }, final_model_path)
-    print(f"✅ Final model saved: {final_model_path}")
     
     # Plot training curves
-    if val_loader:
-        plot_training_curves(
-            train_losses, 
-            val_losses, 
-            os.path.join(SAVE_DIR, 'training_curves.png')
-        )
+    plot_training_curves(
+        train_losses, 
+        val_losses, 
+        os.path.join(SAVE_DIR, 'training_curves.png')
+    )
         
-        # Plot final predictions
-        _, _, _, final_predictions, final_targets = validate(
-            model, val_loader, criterion, DEVICE
-        )
-        plot_predictions(
-            final_predictions,
-            final_targets,
-            train_stats,
-            os.path.join(SAVE_DIR, 'final_predictions.png')
-        )
+    # Plot final predictions
+    _, _, _, best_predictions, best_targets = validate(
+        model, val_loader, criterion, DEVICE
+    )
+    
+    plot_predictions(
+        best_predictions,
+        best_targets,
+        train_stats,
+        os.path.join(SAVE_DIR, 'final_predictions.png')
+    )
     
     # Print summary
     print("\n" + "="*70)
-    print("🎉 Training Complete!")
+    print("Training Complete!")
     print("="*70)
-    print(f"📁 Results saved to: {SAVE_DIR}")
-    print(f"📊 Final train loss: {train_losses[-1]:.6f}")
-    if val_loader:
-        print(f"📊 Final val loss: {val_losses[-1]:.6f}")
-        print(f"🏆 Best val loss: {best_val_loss:.6f}")
+    print(f"Results saved to: {SAVE_DIR}")
+    print(f"Final train loss: {train_losses[-1]:.6f}")
+    print(f"Final val loss: {val_losses[-1]:.6f}")
+    print(f"Best val loss: {best_val_loss:.6f}")
     print("="*70 + "\n")
-
+    
 
 if __name__ == "__main__":
     main()
